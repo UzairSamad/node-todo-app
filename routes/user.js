@@ -31,7 +31,7 @@ router.post("/register", async (req, res) => {
   try {
     const { error } = apiParamsSchema.validate({ username, password });
     if (error) {
-      res.status(400).json({
+      return res.status(400).json({
         succes: false,
         message: error.details[0].message
       });
@@ -39,9 +39,11 @@ router.post("/register", async (req, res) => {
 
     // check username in database before creating a new user
 
-    const user = User.findOne({ username });
-    if (username) {
-      res.status(400).json({
+    let user = await User.findOne({ username });
+    console.log(username);
+    console.log(user);
+    if (user) {
+      return res.status(400).json({
         succes: false,
         message: "Username already exists please provide a Unique Name"
       });
@@ -61,32 +63,35 @@ router.post("/register", async (req, res) => {
     //   replacing plain password with hash password
     user.password = hash;
 
-    //create jsonwebtoken 
+    //create jsonwebtoken
 
-    const payload {
-        user:{
-            username,
-            id: user.id
-        }
-    }
+    const payload = {
+      user: {
+        username,
+        id: user.id
+      }
+    };
 
-    const token = await jwt.sign(payload,JWT_SECRET,{
-        experiesIn:"90d"
-    })
+    const token = await jwt.sign(payload, JWT_SECRET, {
+      expiresIn: "90d"
+    });
 
+    //save user into db
+    await user.save();
 
     return res.json({
-        succces:true,
-        message : "Your have been registerd succesfully",
-        token: token,
-
-    })
-  } catch(error){
-      console.log("Error",error.message)
-      res.status(500).json({
-          succces:false,
-          message:"Internal Server Error",
-          error:error.message
-      })
+      succces: true,
+      message: "Registerd succesfully",
+      token: token
+    });
+  } catch (error) {
+    console.log("Error", error.message);
+    res.status(500).json({
+      succces: false,
+      message: "Internal Server Error",
+      error: error.message
+    });
   }
 });
+
+module.exports = router;
